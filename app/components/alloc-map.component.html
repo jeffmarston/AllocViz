@@ -1,0 +1,50 @@
+<div class="outer-div" >
+    <!-- Preload image that we'll use later-->
+    <img src="http://gifyu.com/images/squares.gif" style="display:none;"/>
+
+    <table> 
+        <tr>
+            <td>Action</td>
+            <td><select name="actionSelect" id="actionSelect" [(ngModel)]="root.action" (change)="checkReadyToAllocate()">
+                    <option>Buy</option>
+                    <option>Sell</option>
+                    <option>Short</option>
+                    <option>Cover</option>
+                </select>
+            <td>Symbol</td>
+            <td><input [(ngModel)]="root.symbol" (change)="checkReadyToAllocate()"/></td>
+            <td rowspan=2>
+                <button (click)="saveTrade()" style="height:100%;">Save</button>
+            </td>
+        </tr>
+        <tr>
+            <td>Amount</td>
+            <td><input [(ngModel)]="root.value" (change)="checkReadyToAllocate()"/></td>
+            <td>Scheme</td>
+            <td><select name="managerSelect" id="managerSelect" [(ngModel)]="root.manager">
+                    <option>TM</option>
+                    <option>ECJ</option>
+                    <option>JAH</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+
+    <div class="header">
+        <div class="header-cell" 
+             *ngFor="let level of aggregationLevels;"
+             (click)="switchLevel(level)"
+             title="Click to move the front"
+             >{{level}}</div>
+    </div>
+
+    <div class="header">
+        <!--<dimension-block
+                *ngFor="let level of aggregationLevels"
+                [allocations]="root.children">
+        </dimension-block>-->
+        <dimension-block [allocations]="portfolios" [overlayMult]="2" (onResizing)="resizing($event)" style="z-index: 300;" ></dimension-block>
+        <dimension-block [allocations]="custodians" [overlayMult]="1" (onResizing)="resizing($event)" style="z-index: 200;"></dimension-block>
+        <dimension-block [allocations]="strategies" [overlayMult]="0" (onResizing)="resizing($event)" style="z-index: 100;"></dimension-block>
+    </div>
+</div>
