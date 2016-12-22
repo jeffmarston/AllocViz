@@ -2,7 +2,7 @@ import { Component, OnInit, Input, OnChanges, SimpleChange } from '@angular/core
 import { CommonModule } from "@angular/common";
 import { Http, Response } from "@angular/http";
 import { TradeService } from "../services/trade.service"
-import { IAllocation, IResizeDelta } from "../types.d"
+import { IAllocation, IResizeDelta, IDimentionBasket } from "../types.d"
 
 
 @Component({
@@ -12,69 +12,38 @@ import { IAllocation, IResizeDelta } from "../types.d"
     providers: [TradeService]
 })
 export class AllocMapComponent implements OnInit {
-    private showGrid = true;
-    private root: IAllocation = {
-        name: "root",
-        symbol: "C",
-        action: "Buy",
-        manager: "TM",
-        value: 600,
-        children: []
-    };
-    private resizingItem = null;
+    private root: IAllocation = null;
+
+    private dummyData = [
+        { "Amount": 33.0,  "Symbol": "T", "Strategy2": "Heads", "Custodian": "EARTH", "Strategy": "GOOSE", "Portfolio": "Eze Credit Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 15.0,  "Symbol": "T", "Strategy2": "Heads", "Custodian": "FIRE",  "Strategy": "GOOSE", "Portfolio": "Eze Credit Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 15.0,  "Symbol": "T", "Strategy2": "Heads", "Custodian": "FIRE",  "Strategy": "DUCK",  "Portfolio": "Eze Credit Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 105.0, "Symbol": "T", "Strategy2": "Heads", "Custodian": "EARTH", "Strategy": "GOOSE", "Portfolio": "Eze Master Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 210.0, "Symbol": "T", "Strategy2": "Heads", "Custodian": "FIRE",  "Strategy": "GOOSE", "Portfolio": "Eze Master Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 105.0, "Symbol": "T", "Strategy2": "Tails", "Custodian": "FIRE",  "Strategy": "DUCK",  "Portfolio": "Eze Master Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 30.0,  "Symbol": "T", "Strategy2": "Tails", "Custodian": "EARTH", "Strategy": "GOOSE", "Portfolio": "Eze Global Macro Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 30.0,  "Symbol": "T", "Strategy2": "Tails", "Custodian": "FIRE",  "Strategy": "GOOSE", "Portfolio": "Eze Global Macro Fund", "Action": "Buy", "Manager": "TM" },
+        { "Amount": 60.0,  "Symbol": "T", "Strategy2": "Tails", "Custodian": "FIRE",  "Strategy": "DUCK",  "Portfolio": "Eze Global Macro Fund", "Action": "Buy", "Manager": "TM" }]
+
     private selectedItem = null;
     private aggregationLevels = ["Portfolio", "Custodian", "Strategy"];
-    private portfolios: IAllocation[] = [];
-    private custodians: IAllocation[] = [];
-    private strategies: IAllocation[] = [];
+    private buckets;
 
     constructor(private tradeService: TradeService) {
     }
 
     ngOnInit() {
-        this.recalcChildren(this.root);
-        this.showGrid = true;
         this.checkReadyToAllocate();
     }
 
     private checkReadyToAllocate() {
-        if (this.root.symbol && this.root.action && this.root.manager && this.root.value > 0) {
-            let obs = this.tradeService.getAllocationLots(this.root.symbol, this.root.value, this.root.manager, this.root.action);
-            obs.subscribe(lots => {
-
-                let allocations = this.tradeService.createTreeFromLots(lots, this.aggregationLevels);
-                this.root.value = allocations.value;
-                this.root.children = allocations.children;
-                this.fixNumbers(this.root);
-                this.assignParents(this.root);
-            });
-        }
+        let result = this.tradeService.buildTree(this.dummyData, this.aggregationLevels);
+        this.buckets = result.buckets;
+        this.root = result.root;
     }
 
     private saveTrade() {
         this.tradeService.sendCommand(this.root);
-    }
-
-    private fixNumbers(trade: IAllocation) {
-        this.portfolios = [];
-        this.custodians = [];
-        this.strategies = [];
-
-        trade.valueStr = trade.value.toFixed(0);
-        trade.children.forEach(portfolio => {
-            portfolio.valueStr = portfolio.value.toFixed(0);
-            this.portfolios.push(portfolio);
-
-            portfolio.children.forEach(custodian => {
-                custodian.valueStr = custodian.value.toFixed(0);
-                this.custodians.push(custodian);
-
-                custodian.children.forEach(strategy => {
-                    strategy.valueStr = strategy.value.toFixed(0);
-                    this.strategies.push(strategy);
-                });
-            });
-        });
     }
 
     private setSelectedItem(alloc: IAllocation) {
@@ -108,8 +77,6 @@ export class AllocMapComponent implements OnInit {
 
             delta.item.isAllocating = false;
             delta.item.next.isAllocating = false;
-
-            this.fixNumbers(this.root);
         }, 1000);
 
         delta.item.isAllocating = true;
@@ -124,17 +91,6 @@ export class AllocMapComponent implements OnInit {
             }
             alloc.parent.value = sum;
             this.recalcParents(alloc.parent);
-        }
-    }
-
-    // This gets replaced with a service call.
-    private assignParents(parent: IAllocation) {
-        if (parent.children && parent.children.length > 0) {
-            for (var j = 0; j < parent.children.length; j++) {
-                let alloc = parent.children[j];
-                alloc.parent = parent;
-                this.assignParents(alloc);
-            }
         }
     }
 

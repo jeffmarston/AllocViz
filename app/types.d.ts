@@ -6,11 +6,16 @@ export interface IAllocation {
     symbol?: string,
     action?: string,
     manager?: string,
-    valueStr?: string,
     next?: IAllocation,
     parent?: IAllocation,
     isResizing? : boolean,
-    isAllocating? :boolean
+    isAllocating? :boolean,
+    originalLots?: IServerAllocationLot[]
+}
+
+export interface IDimentionBasket {
+    title: string,
+    lots: IAllocation[]
 }
 
 export interface IResizeDelta {
@@ -23,6 +28,7 @@ export interface IServerAllocationLot {
     Symbol: string,
     Custodian: string,
     Strategy: string,
+    Strategy2: string,
     Portfolio: string,
     Action: string,
     Manager: string

@@ -8,14 +8,17 @@ import { IAllocation, IResizeDelta } from "../types.d"
     <div (mousemove)="resizing($event)"
          (mouseup)="resizingFinish()"
          (mouseleave)="resizingFinish()" >
+         
+        <!-- <div class="header-cell" title="Click to move the front">{{title}}</div> -->
+
         <div class="level-bounds"        
                 *ngFor="let alloc of allocs; let k = index;" >
+
             <div class="resizable"
                     [ngClass]="{'selected': alloc.selected, 'level3': !alloc.selected }"
                     [style.height]="alloc.value + 'px'">
                 <div (click)="setSelectedItem(alloc)" class="clickable">{{alloc.name}} ({{ alloc.value | number: '1.0-0' }})</div>
-        
-                <div class="resizer" (mousedown)="resizingStart($event, alloc)" ></div>
+                <div class="resizer" (mousedown)="resizingStart($event, alloc)" *ngIf="alloc.next" ></div>
             </div>
             
             <div class="overlay" 
@@ -40,6 +43,7 @@ export class DimensionBlockComponent {
 
     @Output() onResizing = new EventEmitter<IResizeDelta>();
     @Input() overlayMult: number;
+    @Input() title: string;
 
     @Input()
     set allocations(allocations: IAllocation[]) {
@@ -80,7 +84,6 @@ export class DimensionBlockComponent {
             setTimeout(() => {
                 alloc.isAllocating = false;
                 alloc.isResizing = false;
-                //this.fixNumbers(this.alloc);
             }, 400);
         }
         this.resizingItem = null;

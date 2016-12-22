@@ -39,12 +39,17 @@
     </div>
 
     <div class="header">
-        <!--<dimension-block
-                *ngFor="let level of aggregationLevels"
-                [allocations]="root.children">
-        </dimension-block>-->
-        <dimension-block [allocations]="portfolios" [overlayMult]="2" (onResizing)="resizing($event)" style="z-index: 300;" ></dimension-block>
+        <dimension-block
+                *ngFor="let level of aggregationLevels; let i = index;"
+                [allocations]="buckets[level]"
+                [title]="level"
+                [overlayMult]="aggregationLevels.length-i-1" 
+                (onResizing)="resizing($event)" 
+                [style.z-index]="100*(aggregationLevels.length-i-1)" >
+        </dimension-block>
+
+        <!--<dimension-block [allocations]="portfolios" [overlayMult]="2" (onResizing)="resizing($event)" style="z-index: 300;" ></dimension-block>
         <dimension-block [allocations]="custodians" [overlayMult]="1" (onResizing)="resizing($event)" style="z-index: 200;"></dimension-block>
-        <dimension-block [allocations]="strategies" [overlayMult]="0" (onResizing)="resizing($event)" style="z-index: 100;"></dimension-block>
+        <dimension-block [allocations]="strategies" [overlayMult]="0" (onResizing)="resizing($event)" style="z-index: 100;"></dimension-block>-->
     </div>
 </div>

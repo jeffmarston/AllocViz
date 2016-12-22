@@ -52,69 +52,69 @@ export class TradeService {
             });
     }
 
-    private contains(array, str) {
-        for (var i = 0; i < array.length; i++) {
-            if (array[i].name === str) {
-                return i;
-            }
-        }
-        return -1;
+
+    public buildTree(serverLots: IServerAllocationLot[], aggregationLevels: string[]) {
+        let buckets = {};
+        let rootAlloc: IAllocation = { name: "root", value: 0, children: [] };
+        let tree = this.recursiveTreeBuilder(serverLots, 0, buckets, aggregationLevels);
+        rootAlloc.children = tree;
+        rootAlloc.value = this.totalChildAmounts(rootAlloc);
+
+        console.log(buckets);
+
+        return { root: rootAlloc, buckets: buckets };
     }
 
-    public createTreeFromLots(allots: IServerAllocationLot[], aggregationLevels) {
-
-        let root = { value: 0, children: [] };
-        var tree = [];
-        if (allots != null) {
-            allots.forEach(element => {
-                root.value += element.Amount;
-                let portIndex = this.contains(tree, element[aggregationLevels[0]]);
-                if (portIndex > -1) {
-                    tree[portIndex].value += element.Amount;
-                    let custIndex = this.contains(tree[portIndex].children, element[aggregationLevels[1]]);
-                    if (custIndex > -1) {
-                        tree[portIndex].children[custIndex].value += element.Amount;
-                        tree[portIndex].children[custIndex].children.push(
-                            {
-                                name: element[aggregationLevels[2]],
-                                value: element.Amount
-                            }
-                        );
-
-                    } else {
-                        tree[portIndex].children.push(
-                            {
-                                name: element[aggregationLevels[1]],
-                                value: element.Amount,
-                                children: [{
-                                    name: element[aggregationLevels[2]],
-                                    value: element.Amount
-                                }]
-                            }
-                        );
-                    }
-                } else {
-                    tree.push({
-                        name: element[aggregationLevels[0]],
-                        value: element.Amount,
-                        children: [
-                            {
-                                name: element[aggregationLevels[1]],
-                                value: element.Amount,
-                                children: [{
-                                    name: element[aggregationLevels[2]],
-                                    value: element.Amount
-                                }]
-                            }
-                        ]
-                    });
-                }
-
-
-            });
+    private totalChildAmounts(alloc: IAllocation) {
+        if (!alloc.children || alloc.children.length == 0) {
+            // a leaf node will have no children, but could have multiple lots.  So sum the lot Amounts.
+            let sumOfLots = 0;
+            alloc.originalLots.forEach(lot => { sumOfLots += lot.Amount; });
+            return sumOfLots;
         }
-        root.children = tree;
-        return root;
+        let total = 0;
+        alloc.children.forEach(suballoc => {
+            suballoc.value = this.totalChildAmounts(suballoc);
+            suballoc.parent = alloc;
+            total += suballoc.value;
+        });
+        return total;
+    }
+
+    public recursiveTreeBuilder(serverLots: IServerAllocationLot[], aggregationLevel, buckets, aggregationLevels: string[]) {
+        let aggregationDim = null;
+        let tree: IAllocation[] = [];
+        let total = 0;
+
+        if (aggregationLevel >= aggregationLevels.length) {
+            return null;
+        } else {
+            aggregationDim = aggregationLevels[aggregationLevel];
+        }
+
+        // Assemble a collection that aggregates by the current level
+        serverLots.forEach(serverLot => {
+            let agg = tree.find(x => { return x.name == serverLot[aggregationDim] });
+            if (!agg) {
+                // create agg 
+                agg = { name: serverLot[aggregationDim], value: 0, originalLots: [], children: [] };
+                tree.push(agg);
+            }
+            agg.originalLots.push(serverLot);
+        });
+
+        // recursively build out children from the relevant set of lots
+        tree.forEach(item => {
+            let result = this.recursiveTreeBuilder(item.originalLots, aggregationLevel + 1, buckets, aggregationLevels);
+            item.children = result;
+
+            if (!buckets[aggregationDim]) {
+                buckets[aggregationDim] = [];
+            }
+            buckets[aggregationDim].push(item);
+        });
+
+        return tree;
     }
 }
 
